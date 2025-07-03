@@ -1,0 +1,27 @@
+name: Enforce Branch Promotion Rules
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  validate-branch-promotion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch promotion rules
+        run: |
+          # Extract source (head) and target (base) branches
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+
+          # Rule 1: Only 'dev' can merge into 'QA'
+          if [ "$TARGET_BRANCH" = "QA" ] && [ "$SOURCE_BRANCH" != "dev" ]; then
+            echo "::error::PRs to QA must come from 'dev'. Detected source: '$SOURCE_BRANCH'"
+            exit 1
+          fi
+
+          # Rule 2: Only 'QA' can merge into 'master'
+          if [ "$TARGET_BRANCH" = "main" ] && [ "$SOURCE_BRANCH" != "QA" ]; then
+            echo "::error::PRs to master must come from 'QA'. Detected source: '$SOURCE_BRANCH'"
+            exit 1
+          fi
